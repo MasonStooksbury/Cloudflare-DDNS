@@ -1,5 +1,5 @@
 # Cloudflare-DDNS
-Simple bash script to update my public IP when it changes
+Simple bash script to update my public IP when it changes. Automatically figures out the Zone and DNS Record IDs, and optionally messages a Discord webhook if you provide one (if you don't it will write to `logs.log`)
 
 ## Installation
 Download the script and put it wherever you want
@@ -7,12 +7,12 @@ Download the script and put it wherever you want
 ## Usage
 - Create a [Cloudflare API Token](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/)
     - Make sure to select `Edit Zone DNS` and choose your specific domain
-- Jot down your DNS Zone ID ([you can find it here](https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/))
-- Jot down your DNS Record ID ([you can find it here]())
 - Rename `.env.sample` to `.env`
 - Update variables with your info
-- Optionally, you can add a webhook to 
+- Optionally, you can add a Discord webhook to send success and failure messages
+- Finally, set this up via CRON or your favorite scheduling tool (setting it to run every 3 hours is a good, but every 12-24 should be enough)
 
-
-## Notes
-If you decide to use Discord for your webhook messages, you can use [Discohook](https://discohook.app/?data=eyJ2ZXJzaW9uIjoiZDIiLCJtZXNzYWdlcyI6W3siX2lkIjoiWk9sZTE0ZjdrcCIsImRhdGEiOnsiY29udGVudCI6IlRlc3QiLCJlbWJlZHMiOm51bGwsImF0dGFjaG1lbnRzIjpbXX19XX0) to easily format them (the URL is huge because it the webhook just URL-encodes your message)
+## .env Variable Descriptions:
+`CF_TOKEN` - This is your Cloudflare API Token. It is used to discover your Zone ID, DNS Record ID, update the DNS record, and validate itself
+`CF_TARGET_DOMAIN` - This is the domain that you want to update. The script assumes you have a single, wildcard A record aimed at your home server (though you can modify this if you want). This is used to get your Zone ID, DNS Record ID, and update the DNS record
+`WEBHOOK_URL` - This is the Discord webhook URL. If you don't want to use this, simply remove the line entirely or set to "". If this is not set, it will log to `logs.log` in whatever directory the script is ran from

@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from pprint import pprint
+import datetime
 import requests
 import json
 
@@ -13,6 +14,7 @@ def isTokenValid(env):
     r = requests.get(url, headers=headers)
     r = r.json()['result']
     return r['status'] == 'active'
+
 
 
 def getEnvironmentVariables():
@@ -43,6 +45,7 @@ def getLastKnownIpAddress():
     return data[0]
 
 
+
 def getZoneId(env, headers):
     print('Getting Zone ID...')
     r = requests.get('https://api.cloudflare.com/client/v4/zones', headers=headers)
@@ -55,6 +58,7 @@ def getZoneId(env, headers):
     sendMessage(env, '[FAILURE] - Could not get Zone ID for some reason')
 
 
+
 def getDnsRecordId(env, headers):
     print('Getting DNS Record ID...')
     r = requests.get(f'https://api.cloudflare.com/client/v4/zones/{env["CF_ZONE_ID"]}/dns_records', headers=headers)
@@ -65,7 +69,6 @@ def getDnsRecordId(env, headers):
             print('Successfully got DNS Record ID!')
             return record['id']
     sendMessage(env, '[FAILURE] - Could not get DNS Record ID for some reason')
-
 
 
 
@@ -94,12 +97,15 @@ def updateCloudflare(env, current_ip_address):
         setCurrentIpAddress(current_ip_address)
         sendMessage('[SUCCESS] - Public IP successfully pushed to Cloudflare DNS record')
     else:
-        sendMessage('[FAILURE] - Somet')
+        sendMessage('[FAILURE] - Was not able to update Cloudflare DNS record')
+
 
 
 def getCurrentIpAddress(env):
+    print('Getting current IP address...')
     r = requests.get('https://icanhazip.com')
     if r.status_code == 200:
+        print('Successfully got current IP address!')
         return r.text.strip()
     sendMessage(env, '[FAILURE] - Could not get public IP address')
 
@@ -110,34 +116,38 @@ def setCurrentIpAddress(new_ip_address):
         f.write(new_ip_address)
 
 
+
 def sendMessage(env, message):
-    data = {
-        "content": message
-    }
+    if 'WEBHOOK_URL' in env and env['WEBHOOK_URL'] != '':
+        data = {
+            "content": message
+        }
 
-    headers = {
-        "Content-Type": "application/json"
-    }
+        headers = {
+            "Content-Type": "application/json"
+        }
 
-    requests.post(env['WEBHOOK_URL'], data=json.dumps(data), headers=headers)
-
-
-
-
-
+        requests.post(env['WEBHOOK_URL'], data=json.dumps(data), headers=headers)
+    else:
+        with open('logs.log', 'a') as f:
+            f.write(f'{datetime.datetime.now()} ~~~ {message}\n')
 
 
-print(getCurrentIpAddress())
+
+
+
+
+
+
+
 
 env = getEnvironmentVariables()
 
 if not isTokenValid(env):
     sendMessage(env, '[FAILURE] - Token is invalid')
-    exit()
+else:
+    last_known_ip_address = getLastKnownIpAddress()
+    current_ip_address = getCurrentIpAddress()
 
-
-last_known_ip_address = getLastKnownIpAddress()
-current_ip_address = getCurrentIpAddress()
-
-if last_known_ip_address != current_ip_address:
-    updateCloudflare(env, current_ip_address)
+    if last_known_ip_address != current_ip_address:
+        updateCloudflare(env, current_ip_address)
