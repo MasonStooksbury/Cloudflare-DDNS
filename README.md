@@ -7,6 +7,8 @@ Download the script and put it wherever you want
 ## Usage
 - Create a [Cloudflare API Token](https://developers.cloudflare.com/fundamentals/api/get-started/create-token/)
     - Make sure to select `Edit Zone DNS` and choose your specific domain
+- Jot down your DNS Zone ID ([you can find it here](https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/))
+- Jot down your DNS Record ID ([you can find it here]())
 - Rename `.env.sample` to `.env`
 - Update variables with your info
 - Optionally, you can add a webhook to 
