@@ -8,11 +8,11 @@ import json
 
 
 
-logging.basicConfig(level=logging.ERROR, format="{asctime} - {levelname} - {message}", style="{", datefmt="%Y-%m-%d %H:%M")
+logging.basicConfig(level=logging.DEBUG, format="{asctime} - {levelname} - {message}", style="{", datefmt="%Y-%m-%d %H:%M")
 
 
 
-def isTokenValid(env):
+def isTokenValid():
     headers = {
         'Authorization': f'Bearer {env['CF_TOKEN']}'
     }
@@ -53,13 +53,13 @@ def getLastKnownIpAddress():
 
 
 
-def getCurrentIpAddress(env):
+def getCurrentIpAddress():
     logging.debug('Getting current IP address...')
     r = requests.get('https://icanhazip.com')
     if r.status_code == 200:
         logging.debug('Successfully got current IP address!')
         return r.text.strip()
-    sendMessage(env, '[FAILURE] - Could not get public IP address')
+    sendMessage('[FAILURE] - Could not get public IP address')
 
 
 
@@ -69,7 +69,7 @@ def setCurrentIpAddress(new_ip_address):
 
 
 
-def getZoneId(env, headers):
+def getZoneId(headers):
     logging.debug('Getting Zone ID...')
     r = requests.get('https://api.cloudflare.com/client/v4/zones', headers=headers)
     r = r.json()['result']
@@ -78,32 +78,32 @@ def getZoneId(env, headers):
         if zone['name'] == env['CF_TARGET_DOMAIN']:
             logging.debug('Successfully got Zone ID!')
             return zone['id']
-    sendMessage(env, '[FAILURE] - Could not get Zone ID for some reason')
+    sendMessage('[FAILURE] - Could not get Zone ID for some reason')
 
 
 
-def getDnsRecordId(env, headers):
+def getDnsRecordId(zone_id, headers):
     logging.debug('Getting DNS Record ID...')
-    r = requests.get(f'https://api.cloudflare.com/client/v4/zones/{env["CF_ZONE_ID"]}/dns_records', headers=headers)
+    r = requests.get(f'https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records', headers=headers)
     r = r.json()['result']
 
     for record in r:
         if env['CF_TARGET_DOMAIN'] in record['name']:
             logging.debug('Successfully got DNS Record ID!')
             return record['id']
-    sendMessage(env, '[FAILURE] - Could not get DNS Record ID for some reason')
+    sendMessage('[FAILURE] - Could not get DNS Record ID for some reason')
 
 
 
-def updateCloudflare(env, current_ip_address):
+def updateCloudflare(current_ip_address):
     logging.debug('Updating Cloudflare...')
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {env['CF_TOKEN']}'
     }
 
-    zone_id = getZoneId(env, headers)
-    dns_record_id = getDnsRecordId(env, headers)
+    zone_id = getZoneId(headers)
+    dns_record_id = getDnsRecordId(zone_id, headers)
     
     body = {"name": f"*.{env['CF_TARGET_DOMAIN']}",
           "ttl": 1,
@@ -124,7 +124,7 @@ def updateCloudflare(env, current_ip_address):
 
 
 
-def sendMessage(env, message):
+def sendMessage(message):
     if 'WEBHOOK_URL' in env and env['WEBHOOK_URL'] != '':
         data = {
             "content": message
@@ -150,11 +150,14 @@ def sendMessage(env, message):
 
 env = getEnvironmentVariables()
 
-if not isTokenValid(env):
-    sendMessage(env, '[FAILURE] - Token is invalid')
+if not isTokenValid():
+    sendMessage('[FAILURE] - Token is invalid')
 else:
     last_known_ip_address = getLastKnownIpAddress()
     current_ip_address = getCurrentIpAddress()
 
+    logging.debug(f'Last known IP: {last_known_ip_address}')
+    logging.debug(f'Current IP address: {current_ip_address}')
+
     if last_known_ip_address != current_ip_address:
-        updateCloudflare(env, current_ip_address)
+        updateCloudflare(current_ip_address)
