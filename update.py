@@ -2,6 +2,7 @@
 
 from pprint import pprint
 import requests
+import json
 
 
 def isTokenValid(env):
@@ -51,6 +52,7 @@ def getZoneId(env, headers):
         if zone['name'] == env['CF_TARGET_DOMAIN']:
             print('Successfully got Zone ID!')
             return zone['id']
+    sendMessage(env, '[FAILURE] - Could not get Zone ID for some reason')
 
 
 def getDnsRecordId(env, headers):
@@ -62,6 +64,7 @@ def getDnsRecordId(env, headers):
         if env['CF_TARGET_DOMAIN'] in record['name']:
             print('Successfully got DNS Record ID!')
             return record['id']
+    sendMessage(env, '[FAILURE] - Could not get DNS Record ID for some reason')
 
 
 
@@ -86,19 +89,37 @@ def updateCloudflare(env, current_ip_address):
     url = f'https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records/{dns_record_id}'
     
     r = requests.put(url, json=body, headers=headers)
-    return r.status_code
+
+    if r.status_code == 200:
+        setCurrentIpAddress(current_ip_address)
+        sendMessage('[SUCCESS] - Public IP successfully pushed to Cloudflare DNS record')
+    else:
+        sendMessage('[FAILURE] - Somet')
 
 
-def getCurrentIpAddress():
-    return requests.get('https://icanhazip.com').text.strip()
+def getCurrentIpAddress(env):
+    r = requests.get('https://icanhazip.com')
+    if r.status_code == 200:
+        return r.text.strip()
+    sendMessage(env, '[FAILURE] - Could not get public IP address')
+
+
 
 def setCurrentIpAddress(new_ip_address):
     with open('last_known_ip_address.txt', 'w') as f:
         f.write(new_ip_address)
 
 
-def sendMessage():
-    pass
+def sendMessage(env, message):
+    data = {
+        "content": message
+    }
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    requests.post(env['WEBHOOK_URL'], data=json.dumps(data), headers=headers)
 
 
 
@@ -106,11 +127,12 @@ def sendMessage():
 
 
 
-
+print(getCurrentIpAddress())
 
 env = getEnvironmentVariables()
+
 if not isTokenValid(env):
-    print('Token is invalid, not progressing further')
+    sendMessage(env, '[FAILURE] - Token is invalid')
     exit()
 
 
@@ -118,10 +140,4 @@ last_known_ip_address = getLastKnownIpAddress()
 current_ip_address = getCurrentIpAddress()
 
 if last_known_ip_address != current_ip_address:
-    pass_or_nah = updateCloudflare(env, current_ip_address)
-
-    if pass_or_nah == 200:
-        setCurrentIpAddress(current_ip_address)
-        sendMessage('succeed')
-    else:
-        sendMessage('failed')
+    updateCloudflare(env, current_ip_address)
