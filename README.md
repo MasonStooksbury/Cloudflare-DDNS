@@ -1,5 +1,5 @@
 # Cloudflare-DDNS
-Simple bash script to update my public IP when it changes. Automatically figures out the Zone and DNS Record IDs, and optionally messages a Discord webhook if you provide one (if you don't it will write to `logs.log`)
+Simple Python script to update my public IP when it changes. Automatically figures out the Zone and DNS Record IDs, and optionally messages a Discord webhook if you provide one (if you don't, it will write to `logs.log`)
 
 ## Installation
 Download the script and put it wherever you want
