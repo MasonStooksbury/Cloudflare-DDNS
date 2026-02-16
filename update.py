@@ -3,7 +3,13 @@
 from pprint import pprint
 import datetime
 import requests
+import logging
 import json
+
+
+
+logging.basicConfig(level=logging.ERROR, format="{asctime} - {levelname} - {message}", style="{", datefmt="%Y-%m-%d %H:%M")
+
 
 
 def isTokenValid(env):
@@ -18,6 +24,7 @@ def isTokenValid(env):
 
 
 def getEnvironmentVariables():
+    logging.debug('Getting environment variables...')
     data = ''
     env = {}
 
@@ -32,7 +39,7 @@ def getEnvironmentVariables():
         value = '='.join(pieces[1:])
 
         env[key] = value
-    
+
     return env
 
 
@@ -47,33 +54,33 @@ def getLastKnownIpAddress():
 
 
 def getZoneId(env, headers):
-    print('Getting Zone ID...')
+    logging.debug('Getting Zone ID...')
     r = requests.get('https://api.cloudflare.com/client/v4/zones', headers=headers)
     r = r.json()['result']
 
     for zone in r:
         if zone['name'] == env['CF_TARGET_DOMAIN']:
-            print('Successfully got Zone ID!')
+            logging.debug('Successfully got Zone ID!')
             return zone['id']
     sendMessage(env, '[FAILURE] - Could not get Zone ID for some reason')
 
 
 
 def getDnsRecordId(env, headers):
-    print('Getting DNS Record ID...')
+    logging.debug('Getting DNS Record ID...')
     r = requests.get(f'https://api.cloudflare.com/client/v4/zones/{env["CF_ZONE_ID"]}/dns_records', headers=headers)
     r = r.json()['result']
 
     for record in r:
         if env['CF_TARGET_DOMAIN'] in record['name']:
-            print('Successfully got DNS Record ID!')
+            logging.debug('Successfully got DNS Record ID!')
             return record['id']
     sendMessage(env, '[FAILURE] - Could not get DNS Record ID for some reason')
 
 
 
 def updateCloudflare(env, current_ip_address):
-    print('Updating Cloudflare...')
+    logging.debug('Updating Cloudflare...')
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {env['CF_TOKEN']}'
@@ -102,10 +109,10 @@ def updateCloudflare(env, current_ip_address):
 
 
 def getCurrentIpAddress(env):
-    print('Getting current IP address...')
+    logging.debug('Getting current IP address...')
     r = requests.get('https://icanhazip.com')
     if r.status_code == 200:
-        print('Successfully got current IP address!')
+        logging.debug('Successfully got current IP address!')
         return r.text.strip()
     sendMessage(env, '[FAILURE] - Could not get public IP address')
 
