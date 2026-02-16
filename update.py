@@ -53,6 +53,22 @@ def getLastKnownIpAddress():
 
 
 
+def getCurrentIpAddress(env):
+    logging.debug('Getting current IP address...')
+    r = requests.get('https://icanhazip.com')
+    if r.status_code == 200:
+        logging.debug('Successfully got current IP address!')
+        return r.text.strip()
+    sendMessage(env, '[FAILURE] - Could not get public IP address')
+
+
+
+def setCurrentIpAddress(new_ip_address):
+    with open('last_known_ip_address.txt', 'w') as f:
+        f.write(new_ip_address)
+
+
+
 def getZoneId(env, headers):
     logging.debug('Getting Zone ID...')
     r = requests.get('https://api.cloudflare.com/client/v4/zones', headers=headers)
@@ -105,22 +121,6 @@ def updateCloudflare(env, current_ip_address):
         sendMessage('[SUCCESS] - Public IP successfully pushed to Cloudflare DNS record')
     else:
         sendMessage('[FAILURE] - Was not able to update Cloudflare DNS record')
-
-
-
-def getCurrentIpAddress(env):
-    logging.debug('Getting current IP address...')
-    r = requests.get('https://icanhazip.com')
-    if r.status_code == 200:
-        logging.debug('Successfully got current IP address!')
-        return r.text.strip()
-    sendMessage(env, '[FAILURE] - Could not get public IP address')
-
-
-
-def setCurrentIpAddress(new_ip_address):
-    with open('last_known_ip_address.txt', 'w') as f:
-        f.write(new_ip_address)
 
 
 
