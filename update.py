@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from pprint import pprint
+from time import strftime
 import datetime
 import requests
 import logging
@@ -14,7 +15,7 @@ logging.basicConfig(level=logging.DEBUG, format="{asctime} - {levelname} - {mess
 
 def isTokenValid():
     headers = {
-        'Authorization': f'Bearer {env['CF_TOKEN']}'
+        'Authorization': f'Bearer {env["CF_TOKEN"]}'
     }
     url = "https://api.cloudflare.com/client/v4/user/tokens/verify"
     r = requests.get(url, headers=headers)
@@ -99,16 +100,16 @@ def updateCloudflare(current_ip_address):
     logging.debug('Updating Cloudflare...')
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': f'Bearer {env['CF_TOKEN']}'
+        'Authorization': f'Bearer {env["CF_TOKEN"]}'
     }
 
     zone_id = getZoneId(headers)
     dns_record_id = getDnsRecordId(zone_id, headers)
     
-    body = {"name": f"*.{env['CF_TARGET_DOMAIN']}",
+    body = {"name": f'*.{env["CF_TARGET_DOMAIN"]}',
           "ttl": 1,
           "type": "A",
-          "comment": "Domain verification record",
+          "comment": f"Public IP updated on {strftime('%Y-%m-%d', localtime())}",
           "content": current_ip_address,
           "proxied": False}
 
